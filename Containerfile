@@ -1,10 +1,7 @@
-# Use the official NGINX image from the unprivileged stream for OpenShift security compatibility
 FROM registry.access.redhat.com/ubi8/nginx-120:latest
 
-# Copy your application files into the NGINX HTML directory
-COPY index.html app.js .
+# Copy your web application files to the default UBI Nginx public directory
+COPY index.html app.js /opt/app-root/src/
 
-# Expose port 8080 (the default port for the user-space NGINX image)
+# Expose port 8080
 EXPOSE 8080
-
-# NGINX is automatically started by the base image CMD
