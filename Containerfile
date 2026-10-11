@@ -1,4 +1,4 @@
-FROM nginx:alpine
+FROM nginxinc/nginx-unprivileged:alpine
 
 # Copy the jungle web application into NGINX public directory
 COPY index.html /usr/share/nginx/html/index.html
