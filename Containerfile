@@ -1,12 +1,10 @@
-FROM python:3.11-slim
+# Use the official NGINX image from the unprivileged stream for OpenShift security compatibility
+FROM registry.access.redhat.com/ubi8/nginx-120:latest
 
-WORKDIR /app
+# Copy your application files into the NGINX HTML directory
+COPY index.html app.js .
 
-# Copy the HTML file into the container
-COPY index.html /app/index.html
-
-# Expose port 8080
+# Expose port 8080 (the default port for the user-space NGINX image)
 EXPOSE 8080
 
-# Run a simple HTTP server on port 8080
-CMD ["python3", "-m", "http.server", "8080"]
+# NGINX is automatically started by the base image CMD
