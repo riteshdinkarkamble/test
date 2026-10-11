@@ -1,19 +1,12 @@
-FROM nginxinc/nginx-unprivileged:alpine
+FROM python:3.11-slim
 
-# Copy the jungle web application into NGINX public directory
-COPY index.html /usr/share/nginx/html/index.html
+WORKDIR /app
 
-# Expose standard web port
+# Copy the HTML file into the container
+COPY index.html /app/index.html
+
+# Expose port 8080
 EXPOSE 8080
 
-# Adjust NGINX configuration to run securely as non-root (OpenShift security requirement)
-RUN sed -i 's/listenVirt 80;/listen 8080;/g' /etc/nginx/conf.d/default.conf || \
-    sed -i 's/listen       80;/listen       8080;/g' /etc/nginx/conf.d/default.conf && \
-    chown -R nginx:nginx /usr/share/nginx/html && \
-    chmod -R 755 /usr/share/nginx/html && \
-    chown -R nginx:nginx /var/cache/nginx && \
-    chown -R nginx:nginx /var/log/nginx && \
-    touch /var/run/nginx.pid && \
-    chown -R nginx:nginx /var/run/nginx.pid
-
-USER nginx
+# Run a simple HTTP server on port 8080
+CMD ["python3", "-m", "http.server", "8080"]
