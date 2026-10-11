@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jungle Safari - OpenShift App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to bottom, #1a4314, #2d6a4f);
+        }
+        .container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .ui-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #ffffff;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 12px 20px;
+            border-radius: 8px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            pointer-events: none;
+            z-index: 10;
+        }
+        .ui-overlay h1 {
+            font-size: 1.5rem;
+            margin-bottom: 4px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+        }
+        .ui-overlay p {
+            font-size: 0.9rem;
+            color: #b7e4c7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="ui-overlay">
+            <h1>Jungle Safari</h1>
+            <p>OpenShift Containerized Interactive Scene</p>
+        </div>
+        <canvas id="jungleCanvas"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('jungleCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Wind simulation variable
+        let windTime = 0;
+
+        // Tree objects
+        class Tree {
+            constructor(x, scale, type) {
+                this.x = x;
+                this.scale = scale;
+                this.type = type; // 0: palm/tropical, 1: canopy
+                this.baseWidth = 30 * scale;
+                this.height = (canvas.height * 0.6) * scale;
+            }
+
+            draw(windOffset) {
+                const groundY = canvas.height;
+                const trunkTopX = this.x + (windOffset * this.scale);
+                const trunkTopY = groundY - this.height;
+
+                // Draw Trunk
+                ctx.beginPath();
+                ctx.moveTo(this.x - this.baseWidth / 2, groundY);
+                ctx.quadraticCurveTo(
+                    this.x - this.baseWidth / 4, groundY - this.height / 2,
+                    trunkTopX, trunkTopY
+                );
+                ctx.lineTo(trunkTopX + this.baseWidth / 2, trunkTopY);
+                ctx.quadraticCurveTo(
+                    this.x + this.baseWidth / 4, groundY - this.height / 2,
+                    this.x + this.baseWidth / 2, groundY
+                );
+                ctx.fillStyle = '#3d2817';
+                ctx.fill();
+                ctx.closePath();
+
+                // Draw Foliage Canopy swaying with wind
+                ctx.save();
+                ctx.translate(trunkTopX, trunkTopY);
+                ctx.rotate(windOffset * 0.005);
+
+                ctx.fillStyle = this.type === 0 ? '#1b4332' : '#2d6a4f';
+                for (let i = 0; i < 5; i++) {
+                    ctx.beginPath();
+                    let clusterX = (i - 2) * (30 * this.scale);
+                    let clusterY = -i * (10 * this.scale);
+                    let radius = 60 * this.scale;
+                    ctx.arc(clusterX, clusterY, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+        }
+
+        // Lion object
+        class Lion {
+            constructor() {
+                this.x = -150;
+                this.y = canvas.height - 80;
+                this.vx = 1.5;
+                this.scale = 1;
+                this.frame = 0;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.frame += 0.1;
+                this.y = canvas.height - 80;
+
+                // Wrap around screen boundaries
+                if (this.x > canvas.width + 150) {
+                    this.x = -150;
+                    this.vx = 1 + Math.random();
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                if (this.vx < 0) {
+                    ctx.scale(-1, 1);
+                }
+
+                // Body
+                ctx.fillStyle = '#bc6c25';
+                ctx.beginPath();
+                ctx.ellipse(0, -30, 60, 30, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Mane
+                ctx.fillStyle = '#603808';
+                ctx.beginPath();
+                ctx.arc(35, -35, 32, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Head & Face
+                ctx.fillStyle = '#bc6c25';
+                ctx.beginPath();
+                ctx.arc(45, -32, 20, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Legs (animated walking cycle)
+                ctx.strokeStyle = '#9a581e';
+                ctx.lineWidth = 8;
+                ctx.lineCap = 'round';
+                
+                let legOffset = Math.sin(this.frame) * 12;
+
+                // Front Legs
+                ctx.beginPath();
+                ctx.moveTo(35, -10);
+                ctx.lineTo(35 + legOffset, 0);
+                ctx.moveTo(25, -10);
+                ctx.lineTo(25 - legOffset, 0);
+                ctx.stroke();
+
+                // Back Legs
+                ctx.beginPath();
+                ctx.moveTo(-35, -10);
+                ctx.lineTo(-35 - legOffset, 0);
+                ctx.moveTo(-25, -10);
+                ctx.lineTo(-25 + legOffset, 0);
+                ctx.stroke();
+
+                // Tail
+                ctx.strokeStyle = '#bc6c25';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(-60, -35);
+                ctx.quadraticCurveTo(-90, -60 + Math.sin(this.frame)*10, -80, -20);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+        }
+
+        // Generate Trees
+        const trees = [
+            new Tree(100, 1.2, 0),
+            new Tree(300, 0.9, 1),
+            new Tree(550, 1.4, 0),
+            new Tree(800, 1.0, 1),
+            new Tree(1100, 1.3, 0),
+            new Tree(1350, 0.8, 1)
+        ];
+
+        const lion = new Lion();
+
+        // Animation Loop
+        function animate() {
+            // Background Gradient Sky & Canopy
+            const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            grad.addColorStop(0, '#081c15');
+            grad.addColorStop(0.5, '#1b4332');
+            grad.addColorStop(1, '#2d6a4f');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Update wind oscillations
+            windTime += 0.03;
+            const windOffset = Math.sin(windTime) * 25;
+
+            // Draw Background Jungle layer
+            trees.forEach(tree => tree.draw(windOffset * 0.6));
+
+            // Ground Layer
+            ctx.fillStyle = '#112211';
+            ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+
+            // Draw Lion
+            lion.update();
+            lion.draw();
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
