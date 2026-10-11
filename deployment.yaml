@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jungle-safari-app
+  labels:
+    app: jungle-safari
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jungle-safari
+  template:
+    metadata:
+      labels:
+        app: jungle-safari
+    spec:
+      containers:
+      - name: jungle-safari
+        image: image-registry.openshift-image-registry.svc:5000/your-namespace/jungle-safari:latest
+        ports:
+        - containerPort: 8080
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jungle-safari-service
+spec:
+  selector:
+    app: jungle-safari
+  ports:
+  - port: 8080
+    targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: jungle-safari-route
+spec:
+  to:
+    kind: Service
+    name: jungle-safari-service
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
