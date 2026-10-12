@@ -1,4 +1,4 @@
-FROM ://redhat.com
+FROM registry.redhat.io/ubi9/python-39:latest
 
 WORKDIR /app
 
