@@ -4,23 +4,24 @@ from flask import Flask, render_template, send_from_bytes
 
 app = Flask(__name__, template_folder='.')
 
-# --- AUTOMATIC DOWNLOAD OF THREE.JS TO PREVENT BLACK SCREEN ---
 THREE_JS_URL = "https://cloudflare.com"
 LOCAL_THREE_FILE = "three.min.js"
 
 if not os.path.exists(LOCAL_THREE_FILE):
-    print("📥 Downloading Three.js library locally to bypass OpenShift network blocks...")
+    print("📥 Downloading Three.js library locally with browser headers...")
     try:
-        urllib.request.urlretrieve(THREE_JS_URL, LOCAL_THREE_FILE)
-        print("✅ Download complete! Three.js is now bundled inside the container.")
+        # Simulate browser request to prevent 403 blocks
+        req = urllib.request.Request(THREE_JS_URL, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req) as response, open(LOCAL_THREE_FILE, 'wb') as out_file:
+            out_file.write(response.read())
+        print("✅ Download complete!")
     except Exception as e:
-        print(f"⚠️ CDN download failed: {e}. Check cluster internet access.")
+        print(f"⚠️ Runtime download fallback failed: {e}.")
 
 @app.route('/')
 def home():
     return render_template('index.html')
 
-# Endpoint to safely serve the JavaScript asset to the browser from your OpenShift Pod
 @app.route('/three.min.js')
 def serve_three():
     with open(LOCAL_THREE_FILE, 'rb') as f:
