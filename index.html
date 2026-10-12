@@ -2,32 +2,141 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jungle Safari - Interactive Scene</title>
+    <title>OpenShift Cloud Racer 3D</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: sans-serif; }
-        canvas { display: block; }
-        #overlay {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            color: white;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 10px;
-            border-radius: 5px;
-            pointer-events: none;
-        }
-        #overlay h1 { margin: 0 0 5px 0; font-size: 1.5em; }
-        #overlay p { margin: 0; font-size: 0.9em; }
+        body { margin: 0; background: #222; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: white; overflow: hidden; }
+        #gameCanvas { background: #000; border: 4px solid #cc0000; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .controls { margin-top: 15px; font-size: 14px; text-align: center; color: #aaa; }
+        .score-board { font-size: 24px; font-weight: bold; color: #ffcc00; margin-bottom: 10px; }
     </style>
 </head>
 <body>
-    <div id="overlay">
-        <h1>Jungle Safari</h1>
-        <p>OpenShift Containerized Interactive Scene (Live View)</p>
-    </div>
 
-    <!-- The 3D view will be rendered here -->
-    <script type="module" src="app.js"></script>
+    <div class="score-board">SCORE: <span id="scoreVal">0</span></div>
+    <canvas id="gameCanvas" width="640" height="360"></canvas>
+    <div class="controls">🕹️ Use <b>LEFT / RIGHT</b> Arrow Keys to Steer | Avoid the Red Obstacles!</div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const scoreVal = document.getElementById("scoreVal");
+
+// Game Variables
+let playerX = 0; 
+let speed = 8;
+let score = 0;
+let gameOver = false;
+let obstacles = [];
+let keys = {};
+
+// Track Input
+window.addEventListener("keydown", e => keys[e.key] = true);
+window.addEventListener("keyup", e => keys[e.key] = false);
+
+// Obstacle Spawner
+function spawnObstacle() {
+    if (Math.random() < 0.03 && obstacles.length < 5) {
+        obstacles.push({
+            x: Math.random() * 400 - 200, // relative to track center
+            y: 0,                          // start at horizon
+            scale: 0.05
+        });
+    }
+}
+
+// Core Game Loop
+function update() {
+    if (gameOver) return;
+
+    // Movement Logic
+    if (keys["ArrowLeft"] || keys["a"]) playerX -= 0.05;
+    if (keys["ArrowRight"] || keys["d"]) playerX += 0.05;
+
+    // Clamp player boundaries
+    playerX = Math.max(-1.5, Math.min(1.5, playerX));
+
+    // Update Obstacles
+    obstacles.forEach((obs, index) => {
+        obs.y += speed;
+        obs.scale = (obs.y / canvas.height) * 1.5;
+
+        // Collision detection at front screen
+        if (obs.y > canvas.height - 60 && obs.y < canvas.height - 20) {
+            let screenObsX = canvas.width / 2 + (obs.x * (obs.y / 150));
+            let screenPlayerX = canvas.width / 2 + (playerX * 180);
+            
+            if (Math.abs(screenObsX - screenPlayerX) < 40) {
+                gameOver = true;
+            }
+        }
+
+        // Cleanup past obstacles
+        if (obs.y > canvas.height) {
+            obstacles.splice(index, 1);
+            score += 10;
+            scoreVal.innerText = score;
+        }
+    });
+
+    spawnObstacle();
+}
+
+function render() {
+    // Clear screen (Sky)
+    ctx.fillStyle = "#87CEEB";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Horizon/Ground
+    ctx.fillStyle = "#117711";
+    ctx.fillRect(0, canvas.height / 2, canvas.width, canvas.height / 2);
+
+    // Pseudo 3D Road Perspective lines
+    ctx.fillStyle = "#444444";
+    ctx.beginPath();
+    ctx.moveTo(canvas.width / 2 - 20, canvas.height / 2);
+    ctx.lineTo(canvas.width / 2 + 20, canvas.height / 2);
+    ctx.lineTo(canvas.width / 2 + 250, canvas.height);
+    ctx.lineTo(canvas.width / 2 - 250, canvas.height);
+    ctx.closePath();
+    ctx.fill();
+
+    // Render Obstacles
+    ctx.fillStyle = "#cc0000";
+    obstacles.forEach(obs => {
+        let outX = canvas.width / 2 + (obs.x * (obs.y / 150));
+        let size = 20 * obs.scale;
+        ctx.fillRect(outX - size/2, obs.y, size, size);
+    });
+
+    // Render Player Car
+    let pX = canvas.width / 2 + (playerX * 180);
+    let pY = canvas.height - 50;
+    
+    ctx.fillStyle = "#0066cc"; // Car Body
+    ctx.fillRect(pX - 25, pY, 50, 25);
+    ctx.fillStyle = "#000";    // Wheels
+    ctx.fillRect(pX - 30, pY + 3, 5, 15);
+    ctx.fillRect(pX + 25, pY + 3, 5, 15);
+
+    if (gameOver) {
+        ctx.fillStyle = "rgba(0,0,0,0.7)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#ff0000";
+        ctx.font = "40px sans-serif";
+        ctx.fillText("GAME OVER", canvas.width / 2 - 120, canvas.height / 2);
+        ctx.font = "20px sans-serif";
+        ctx.fillStyle = "#fff";
+        ctx.fillText("Press F5 to Restart", canvas.width / 2 - 85, canvas.height / 2 + 40);
+    }
+}
+
+function loop() {
+    update();
+    render();
+    requestAnimationFrame(loop);
+}
+
+loop();
+</script>
 </body>
 </html>
