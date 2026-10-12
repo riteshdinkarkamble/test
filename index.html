@@ -11,7 +11,9 @@
         #game-over { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ff0055; font-size: 48px; font-weight: bold; text-align: center; text-shadow: 0 0 15px #ff0055; }
     </style>
     <!-- Include Three.js WebGL Engine Engine Core via CDN -->
-    <script src="https://cloudflare.com"></script>
+    <!-- ADD THIS: Points locally to your OpenShift container path -->
+    <script src="/three.min.js"></script>
+
 </head>
 <body>
 
